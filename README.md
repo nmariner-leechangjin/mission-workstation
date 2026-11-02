@@ -49,7 +49,7 @@ docker compose version
 | VS Code GitHub 로그인 화면 | VERIFIED | [Git과 GitHub](#git과-github) |
 | Compose 단일·다중 서비스와 운영 명령 | VERIFIED | [Compose 보너스](#compose-보너스) |
 | Compose 환경 변수 포트 변경 | VERIFIED | [Compose 보너스](#compose-보너스) |
-| GitHub SSH 인증 | TODO | [SSH 보너스](#ssh-보너스) |
+| GitHub SSH 인증 | VERIFIED | [SSH 보너스](#ssh-보너스) |
 
 ## 프로젝트 파일
 
@@ -306,23 +306,23 @@ git remote get-url origin
 
 ## SSH 보너스
 
-사용자가 암호 문구를 설정해 SSH 키를 생성하고 공개키를 GitHub 계정에 등록했다고 보고했습니다. 로컬에서 개인키·공개키 파일의 존재를 확인했습니다. GitHub 서버의 Ed25519 지문을 [공식 지문](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints) `SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU`와 비교해 일치함을 확인하고 `known_hosts`에 추가했습니다. 명시적으로 로컬 키를 제시한 검사에서 키 지문 `SHA256:SDJVmldeW+Wup6f8K+C3G1RPGPto8dJtcLY5GEvQlUs`를 전송했지만 GitHub가 `Permission denied (publickey)`를 반환했습니다. GitHub 계정에 등록된 공개키가 현재 로컬 공개키와 다를 가능성이 있어 재등록이 필요합니다. 대화형 SSH 접속·원격 전환·푸시는 **아직 검증 전**입니다. 개인키는 저장소에 넣지 않습니다.
+사용자가 암호 문구를 설정해 SSH 키를 생성하고 정확한 공개키를 GitHub 계정에 등록했습니다. 로컬 공개키 지문은 `SHA256:SDJVmldeW+Wup6f8K+C3G1RPGPto8dJtcLY5GEvQlUs`입니다. GitHub 서버의 Ed25519 지문을 [공식 지문](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints) `SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU`와 비교해 일치함을 확인하고 `known_hosts`에 추가했습니다. 사용자가 다음 명령으로 GitHub SSH 인증 성공을 확인했습니다. 개인키는 저장소에 넣지 않습니다.
 
 ```powershell
 & 'C:\Program Files\Git\usr\bin\ssh-keyscan.exe' -T 10 -t ed25519 github.com 2>$null | & 'C:\Program Files\Git\usr\bin\ssh-keygen.exe' -lf - -E sha256
 # 256 SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU github.com (ED25519)
 ssh -o IdentitiesOnly=yes -i "$env:USERPROFILE\\.ssh\\id_ed25519" -T git@github.com
-# 로컬 키를 제시했지만 GitHub가 Permission denied (publickey)를 반환함
+# Hi nmariner-leechangjin! You've successfully authenticated, but GitHub does not provide shell access.
 ```
 
-사용자에게 안내한 키 생성·등록 절차와 남은 검증 명령은 다음과 같습니다. `ssh-keygen`의 암호 문구는 사용자가 직접 입력했으며 채팅이나 스크린샷에 남기지 않았습니다.
+사용자에게 안내한 키 생성·등록 절차와 검증 명령은 다음과 같습니다. `ssh-keygen`의 암호 문구는 사용자가 직접 입력했으며 채팅이나 스크린샷에 남기지 않았습니다.
 
 ```powershell
 ssh-keygen -t ed25519 -C "mission-workstation" -f "$env:USERPROFILE\.ssh\id_ed25519"
 Get-Content "$env:USERPROFILE\.ssh\id_ed25519.pub" | Set-Clipboard
 # GitHub Settings → SSH and GPG keys → New SSH key에서 공개키만 등록 (사용자 수행)
 ssh -T git@github.com
-# 대화형 성공 확인 후 아래 명령을 실행할 예정
+# 인증 성공 후 SSH 원격 주소로 전환
 git remote set-url origin git@github.com:nmariner-leechangjin/mission-workstation.git
 git remote -v
 git ls-remote origin HEAD
@@ -333,12 +333,12 @@ git ls-remote origin HEAD
 1. **Docker API 연결 권한 거부** — 일반 실행 환경에서 `docker info`가 `permission denied ... dockerDesktopLinuxEngine`을 반환했습니다. 데몬 중단 또는 실행 환경의 파이프 접근 제한을 가설로 두고, 같은 명령을 허용된 로컬 실행 권한으로 재실행했습니다. `29.9.2|Docker Desktop|docker-desktop`이 출력되어 데몬은 동작 중이고 처음의 실행 권한이 원인이었음을 확인했습니다.
 2. **로컬 HTTP 접속 실패** — 제한된 실행 환경의 `curl.exe http://localhost:18080/`는 연결 오류를 냈습니다. 컨테이너 종료 또는 로컬 네트워크 접근 제한을 가설로 두고 `docker ps -a`와 `docker logs`로 서버 실행·포트 연결을 확인했습니다. 로컬 접근이 허용된 실행 권한에서 같은 URL로 HTML과 `/health`의 `ok`를 받아 네트워크 접근 경계임을 확인했습니다.
 3. **Docker Desktop 최초 설치 실패** — 기존 [설치 오류 화면](docs/screenshots/docsscreenshots06_docker-install-prerequisite-failed.png)에 `Virtual Machine Platform` 기능이 비활성화돼 있고 사용자별 설치에서 관리자 권한으로 활성화할 수 없다고 표시됩니다. 원인 가설은 Windows 가상화 기능 미설정입니다. 이후 [설치 성공 화면](docs/screenshots/Docker%EC%84%A4%EC%B9%98%20%EC%84%B1%EA%B3%B5.png)과 `docker info` 성공으로 현재 설치·데몬 동작을 확인했습니다. 중간에 수행한 관리자 설정 절차의 명령 기록은 없어 특정 조치를 성공 원인으로 단정하지 않습니다.
-4. **SSH 공개키 불일치 가능성** — 명시적으로 `id_ed25519`를 제시했는데도 GitHub가 `Permission denied (publickey)`를 반환했습니다. 로컬 공개키 지문과 GitHub Settings의 등록 키 지문이 다른지 확인하고, 필요하면 정확한 `.pub` 파일을 다시 등록해야 합니다. GitHub 서버 지문은 공식 값과 일치했습니다.
+4. **SSH 공개키 불일치 해결** — 처음에는 GitHub에 다른 공개키가 등록돼 `Permission denied (publickey)`가 반환됐습니다. 로컬 `.pub` 파일을 다시 복사해 GitHub에 등록한 뒤, `ssh -o IdentitiesOnly=yes -i "$env:USERPROFILE\\.ssh\\id_ed25519" -T git@github.com`에서 사용자 인증 성공 메시지를 확인했습니다.
 
 ## 남은 제출 증거
 
 - 로컬 변경을 검토한 뒤 사용자 요청에 따라 commit/push하고, 공개 README에서 이미지와 링크가 실제로 열리는지 최종 확인하기.
-- SSH 보너스는 대화형 인증 성공과 원격 주소 전환 결과를 기록하기.
+- SSH 보너스의 SSH 원격 주소 전환과 push 결과를 기록하기.
 
 ## 보안
 

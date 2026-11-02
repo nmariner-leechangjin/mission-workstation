@@ -18,5 +18,6 @@
 | 12 | Git 설정 및 VS Code/GitHub 연동 | VERIFIED | README, docs/screenshots/16-vscode-github-account.jpg |
 | 13 | 보안 검토 | VERIFIED | README, .gitignore, .dockerignore, 스크린샷 육안 검토 |
 | 보너스 | Compose 단일·다중 서비스, 운영 명령, 환경 변수 | VERIFIED | README, compose.yaml, app/monitor.py |
-| 보너스 | GitHub SSH 키 생성·등록 | IMPLEMENTED | README; 사용자 등록 보고, 로컬 키 파일 확인 |
-| 보너스 | GitHub SSH 인증·원격 전환 | TODO | README; 대화형 인증 검증 필요 |
+| 보너스 | GitHub SSH 키 생성·등록 | VERIFIED | README; GitHub 계정 화면, 로컬 키 파일 |
+| 보너스 | GitHub SSH 인증 | VERIFIED | README; 사용자 실행 결과 |
+| 보너스 | SSH 원격 전환·push | TODO | README; 사용자 터미널에서 마지막 push 필요 |
