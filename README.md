@@ -338,7 +338,7 @@ git ls-remote origin HEAD
 ## 남은 제출 증거
 
 - 로컬 변경을 검토한 뒤 사용자 요청에 따라 commit/push하고, 공개 README에서 이미지와 링크가 실제로 열리는지 최종 확인하기.
-- SSH 보너스의 SSH 원격 주소 전환과 push 결과를 기록하기.
+- SSH 보너스의 대화형 인증 성공, SSH 원격 주소 전환, `git push origin main` 결과 `Everything up-to-date`를 확인했다.
 
 ## 보안
 
