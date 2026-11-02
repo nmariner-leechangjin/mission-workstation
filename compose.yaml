@@ -1,0 +1,28 @@
+services:
+  web:
+    build: .
+    image: mission-workstation:web
+    environment:
+      PORT: ${APP_PORT:-8000}
+      CONTENT_FILE: /app/content/message.txt
+      DATA_FILE: /data/visits.txt
+    ports:
+      - "${HOST_PORT:-18081}:${APP_PORT:-8000}"
+    volumes:
+      - ./content/message.txt:/app/content/message.txt:ro
+      - web_data:/data
+
+  monitor:
+    image: mission-workstation:web
+    command: ["python", "-u", "/app/monitor.py"]
+    healthcheck:
+      disable: true
+    environment:
+      TARGET_URL: http://web:${APP_PORT:-8000}/health
+      INTERVAL_SECONDS: "5"
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  web_data:

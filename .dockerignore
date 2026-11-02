@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+.ssh
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.pem
+**/*.key
+docs
+*.md
+venv
+.venv
