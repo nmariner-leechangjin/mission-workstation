@@ -160,6 +160,8 @@ docker stop mission-workstation-web
 
 기존 증거: [빌드](docs/screenshots/10_docker-build-success.png), [이미지 목록](docs/screenshots/11_docker-images.png), [실행](docs/screenshots/12_docker-run-success.png), [로그](docs/screenshots/14_docker%20logs.png). 기존 스크린샷은 초기 Python 출력 예제이며, 아래 웹 서버 검증은 이번 실행 기록입니다.
 
+재현 중 캐시 영향을 배제해야 하면 `docker build --no-cache -t mission-workstation:web .`를 사용합니다. 빌드가 실패할 때는 마지막 오류 줄, Dockerfile 단계, `docker context show`를 함께 확인합니다.
+
 ## 웹 서버 이미지
 
 선택한 기존 베이스는 `python:3.11-slim`입니다. 기존 단일 출력용 Dockerfile을 확장했습니다. `COPY`는 서버 코드와 기본 메시지를 넣고, `ENV`는 포트·메시지·데이터 파일 위치를 설정하며, `EXPOSE`는 컨테이너 포트를 문서화하고, `HEALTHCHECK`는 `/health` 응답을 확인합니다. 실제 포트 공개는 `docker run -p`가 담당합니다.
@@ -176,6 +178,8 @@ docker build -t mission-workstation:web .
 ## 포트 매핑
 
 컨테이너의 8000번 포트는 호스트에서 바로 접근할 수 없으므로 `-p 18080:8000`으로 연결했습니다. 주소는 `http://localhost:18080/`입니다.
+
+Windows에서는 `Get-NetTCPConnection -LocalPort 18080 -ErrorAction SilentlyContinue`로 점유 프로세스를 확인하고, Docker 컨테이너가 점유한 경우 `docker ps --filter publish=18080`과 `docker stop <container>`로 해제합니다. 다른 호스트 포트 `18081` 접속 결과는 Compose 섹션에 기록했습니다. `localhost` loopback 테스트는 외부 인바운드 방화벽 규칙과 별개입니다.
 
 ```powershell
 docker volume create mission-workstation-data
@@ -223,6 +227,13 @@ docker run --rm --mount type=volume,source=mission-workstation-data,target=/data
 docker run -d --name mission-workstation-web -p 18080:8000 --mount type=bind,source=C:\Codyssey\mission-workstation\content\message.txt,target=/app/content/message.txt --mount type=volume,source=mission-workstation-data,target=/data mission-workstation:web
 curl.exe -sS http://localhost:18080/
 # <!doctype html>...<h1>Mission Workstation web server</h1><p>Visits: 4</p></html>
+```
+
+볼륨은 운영 데이터이므로 정기 백업을 권장합니다. 아래는 tar 스트림으로 백업·복원하는 재현 절차이며, 백업 파일은 저장소에 커밋하지 않습니다.
+
+```powershell
+docker run --rm --mount type=volume,source=mission-workstation-data,target=/data --mount type=bind,source=$((Get-Location).Path),target=/backup ubuntu:24.04 tar czf /backup/mission-workstation-data.tgz -C /data .
+docker run --rm --mount type=volume,source=mission-workstation-data,target=/data --mount type=bind,source=$((Get-Location).Path),target=/backup ubuntu:24.04 tar xzf /backup/mission-workstation-data.tgz -C /data
 ```
 
 ## Compose 보너스
@@ -297,10 +308,10 @@ git config --list | ForEach-Object { if ($_ -match '^user\.name=') { 'user.name=
 git branch --show-current
 # main
 git remote get-url origin
-# https://github.com/nmariner-leechangjin/mission-workstation.git
+# git@github.com:nmariner-leechangjin/mission-workstation.git
 ```
 
-기존 증거: [Git 초기화·상태](docs/screenshots/13_git-init-status.png). 아래 VS Code 계정 메뉴에는 `nmariner-leechangjin (GitHub)` 로그인 상태와 `mission-workstation` 작업 폴더가 함께 보입니다. 이 문서의 로컬 수정은 아직 push하지 않았습니다.
+기존 증거: [Git 초기화·상태](docs/screenshots/13_git-init-status.png). 아래 VS Code 계정 메뉴에는 `nmariner-leechangjin (GitHub)` 로그인 상태와 `mission-workstation` 작업 폴더가 함께 보입니다. 이전 제출에서 `git push origin main`의 `Everything up-to-date` 결과를 확인했으며, 이번 2차 보완 변경은 승인 전까지 push하지 않습니다.
 
 ![VS Code GitHub 계정과 작업 폴더](docs/screenshots/16-vscode-github-account.jpg)
 
@@ -335,10 +346,35 @@ git ls-remote origin HEAD
 3. **Docker Desktop 최초 설치 실패** — 기존 [설치 오류 화면](docs/screenshots/docsscreenshots06_docker-install-prerequisite-failed.png)에 `Virtual Machine Platform` 기능이 비활성화돼 있고 사용자별 설치에서 관리자 권한으로 활성화할 수 없다고 표시됩니다. 원인 가설은 Windows 가상화 기능 미설정입니다. 이후 [설치 성공 화면](docs/screenshots/Docker%EC%84%A4%EC%B9%98%20%EC%84%B1%EA%B3%B5.png)과 `docker info` 성공으로 현재 설치·데몬 동작을 확인했습니다. 중간에 수행한 관리자 설정 절차의 명령 기록은 없어 특정 조치를 성공 원인으로 단정하지 않습니다.
 4. **SSH 공개키 불일치 해결** — 처음에는 GitHub에 다른 공개키가 등록돼 `Permission denied (publickey)`가 반환됐습니다. 로컬 `.pub` 파일을 다시 복사해 GitHub에 등록한 뒤, `ssh -o IdentitiesOnly=yes -i "$env:USERPROFILE\\.ssh\\id_ed25519" -T git@github.com`에서 사용자 인증 성공 메시지를 확인했습니다.
 
+## 2차 사전평가 18개 항목 보완표
+
+| 번호 | 보완한 내용 |
+|---:|---|
+| 1 | 터미널 명령·출력과 [VS Code 터미널 캡처](docs/screenshots/05_linux-cli-powershell.png)를 함께 연결했다. |
+| 2 | 권한 변경 전 700/600과 변경 후 755/644를 별도 줄로 명시했다. |
+| 3 | `docker info --format` 결과와 [Docker 정보 캡처](docs/screenshots/07_docker-info.png)를 연결했다. |
+| 4 | `hello-world` 출력과 [Docker 실행 캡처](docs/screenshots/12_docker-run-success.png)를 연결했다. |
+| 5 | `docker stop`을 포함한 운영 종료 흐름을 기록했다. |
+| 6 | `--no-cache` 재빌드와 실패 시 확인 순서를 추가했다. |
+| 7 | 다른 호스트 포트·localhost 방화벽 경계를 설명했다. |
+| 8 | named volume tar 백업·복원 절차를 추가했다. |
+| 9 | SSH 원격 URL과 이전 `Everything up-to-date` push 결과를 기록했다. |
+| 10 | 새 서비스·설정·증거 파일의 디렉터리 확장 규칙을 ARCHITECTURE.md에 추가했다. |
+| 11 | Windows 경로와 포트 환경 변수 재현 주의사항을 추가했다. |
+| 12 | 이미지 변경은 재빌드·컨테이너 재생성이 필요하다는 원칙을 보완했다. |
+| 13 | 네트워크 네임스페이스와 호스트 포트 포워딩의 관계를 ARCHITECTURE.md에 추가했다. |
+| 14 | 바인드 마운트의 Windows 호스트 경로·Linux 컨테이너 경로 원칙을 명시했다. |
+| 15 | 755/644 및 디렉터리 실행 비트 의미를 재강조했다. |
+| 16 | `Get-NetTCPConnection`·`docker ps --filter publish` 기반 포트 충돌 진단을 추가했다. |
+| 17 | volume tar 백업·복원과 저장소 외부 보관 원칙을 추가했다. |
+| 18 | Docker·HTTP·설치·SSH 트러블슈팅에 확인 명령과 캡처 링크를 연결했다. |
+
+이미지 변경은 실행 중 컨테이너의 파일을 자동으로 바꾸지 않으므로, Dockerfile 또는 소스 변경 후에는 이미지를 다시 빌드하고 컨테이너를 재생성해야 합니다. 바인드 마운트는 Windows에서 호스트 절대 경로를, 컨테이너 내부에서는 Linux 경로를 사용합니다.
+
 ## 남은 제출 증거
 
-- 로컬 변경을 검토한 뒤 사용자 요청에 따라 commit/push하고, 공개 README에서 이미지와 링크가 실제로 열리는지 최종 확인하기.
-- SSH 보너스의 대화형 인증 성공, SSH 원격 주소 전환, `git push origin main` 결과 `Everything up-to-date`를 확인했다.
+- 이번 2차 보완 변경은 로컬 검토·검증 후 사용자 승인 시에만 commit/push한다.
+- 이전 제출에서 SSH 대화형 인증, SSH 원격 주소 전환, `git push origin main` 결과 `Everything up-to-date`를 확인했다.
 
 ## 보안
 
